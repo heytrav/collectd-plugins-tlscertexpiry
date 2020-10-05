@@ -8,9 +8,11 @@ use Collectd qw(:all);
 use Crypt::OpenSSL::X509;
 use DateTime;
 use DateTime::Format::Strptime;
+use List::Util qw/max/;
 
 our $VERSION = '1.000'; # VERSION
 our $certificate_files = [];
+our $project;
 
 
 sub fetch_ssl_expiration {
@@ -30,7 +32,7 @@ sub days_till_expiry {
     my $expire_date = fetch_ssl_expiration($cert_path);
     my $now = DateTime->now();
     my $difference_in_days = int(($expire_date->epoch - $now->epoch) / 86400); # seconds in a day
-    return $difference_in_days;
+    return max(0, $difference_in_days);
 }
 
 
@@ -39,7 +41,12 @@ sub tls_cert_files_expiry_config {
     my ($config) = @_;
     foreach my $item (@{$config->{'children'}}) {
         my $key = lc($item->{'key'});
-        $certificate_files = $item->{'values'}
+        if ($key eq 'certificates') {
+          $certificate_files = $item->{'values'}
+        }
+        elsif ($key eq 'project') {
+          $project = $key;
+        }
     }
     
    return 1; 
@@ -56,7 +63,7 @@ sub tls_cert_files_expiry_read {
             plugin => 'tls_cert_files_expiry',
             plugin_instance => $cert_file_name,
             type => 'gauge',
-            type_instance => $cert_file_name,
+            type_instance => $project
             interval => plugin_get_interval(),
             values => [$days_left]
         };
