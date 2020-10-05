@@ -56,19 +56,24 @@ sub tls_cert_files_expiry_read {
 
     foreach my $cert_file (@{$certificate_files}) {
         (my $cert_file_name = $cert_file) =~ s!.+?/?([^/]+)$!$1!;
-        my $days_left = days_till_expiry($cert_file);
-        plugin_log(LOG_WARNING, "cert file: $cert_file_name expires in $days_left days") if $days_left < 50;
-
-        my $value_list = {
-            plugin => 'tls_cert_files_expiry',
-            plugin_instance => $cert_file_name,
-            type => 'gauge',
-            type_instance => $project,
-            project => $project,
-            interval => plugin_get_interval(),
-            values => [$days_left]
+        local $@;
+        eval {
+          my $days_left = days_till_expiry($cert_file);
+          plugin_log(LOG_WARNING, "cert file: $cert_file_name expires in $days_left days") if $days_left < 50;
+          my $value_list = {
+              plugin => 'tls_cert_files_expiry',
+              plugin_instance => $cert_file_name,
+              type => 'gauge',
+              type_instance => $project,
+              project => $project,
+              interval => plugin_get_interval(),
+              values => [$days_left]
+          };
+          plugin_dispatch_values($value_list);
         };
-        plugin_dispatch_values($value_list);
+        if (my $exception = $@) {
+          plugin_log(LOG_ERROR, "Processing $cert_file:  ".$exception)
+        }
     }
     
     return 1;
