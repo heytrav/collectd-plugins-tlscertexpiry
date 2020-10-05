@@ -56,7 +56,7 @@ sub tls_cert_files_expiry_read {
             plugin => 'tls_cert_files_expiry',
             plugin_instance => $cert_file_name,
             type => 'gauge',
-            type_instance => '',
+            type_instance => $cert_file_name,
             interval => plugin_get_interval(),
             values => [$days_left]
         };
