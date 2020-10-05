@@ -45,7 +45,7 @@ sub tls_cert_files_expiry_config {
           $certificate_files = $item->{'values'}
         }
         elsif ($key eq 'project') {
-          $project = $key;
+          $project = shift @{$item->{'values'}};
         }
     }
     
