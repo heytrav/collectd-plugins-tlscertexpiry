@@ -6,6 +6,7 @@ use strict;
 use warnings;
 use Collectd qw(:all);
 use Crypt::OpenSSL::X509;
+use Crypt::OpenSSL::PKCS12;
 use DateTime;
 use DateTime::Format::Strptime;
 use List::Util qw/max/;
@@ -17,7 +18,16 @@ our $project;
 
 sub fetch_ssl_expiration {
     my ($cert_path) = @_;
-    my $x509 = Crypt::OpenSSL::X509->new_from_file($cert_path);
+
+    my $x509;
+    if ($cert_path =~ /\.p12$/) {
+      my $pkcs12 = Crypt::OpenSSL::PKCS12->new_from_file($cert_path); 
+      $x509 = Crypt::OpenSSL::X509->new_from_string($pkcs12->certificate());
+    }
+    else {
+      $x509 = Crypt::OpenSSL::X509->new_from_file($cert_path);
+    }
+    
     my $notAfterDate = $x509->notAfter();
     my $parser = DateTime::Format::Strptime->new(
         pattern => '%b %d %T %Y %Z',
